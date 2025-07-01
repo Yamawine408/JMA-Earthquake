@@ -1,0 +1,14 @@
+ {
+  "title": "jma",
+  "config": {
+    "step": {
+      "init": {
+        "title": "Earthquake",
+        "data": {
+            "Threshold": "Magnitude Threshold",
+            "Interval (Minute)": "Polling Interval"
+        }
+      },
+    },
+  }
+}

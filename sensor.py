@@ -94,13 +94,14 @@ def fetch_latest_jma_report():
 class JmaEarthquake(SensorEntity):
     """Representation of a Sensor."""
 
-    _attr_name = 'jma'
+    _attr_name = 'JMA'
+    _attr_has_entity_name = True
 
     def __init__(self, hass, config):
         """Initialize the sensor."""
         self._hass = hass
         self._hass.custom_attributes = {}
-
+        
     def update(self) -> None:
         results = fetch_latest_jma_report()
         self._attr_native_value = results['text']
@@ -128,7 +129,7 @@ class JmaCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
-            name='jma',
+            name='JMA',
             config_entry=config_entry,
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=timedelta(seconds=300),
