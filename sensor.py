@@ -5,7 +5,6 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
@@ -31,7 +30,7 @@ FEED_URL = 'https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml'
 ATOM = '{http://www.w3.org/2005/Atom}'
 SEISMOLOGY1 = '{http://xml.kishou.go.jp/jmaxml1/body/seismology1/}'
 ELEMENTBASIS1 = '{http://xml.kishou.go.jp/jmaxml1/elementBasis1/}'
-
+EARTHQUAKETITLE = '震源・震度に関する情報'
 MAGNITUDE_THRESHOLD = 4.0
 
 SCAN_INTERVAL = timedelta(seconds=300)
@@ -42,6 +41,8 @@ def setup_platform(
     add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None
 ) -> None:
+#    config = hass.data[DOMAIN][config_entry.entry_id]
+#    session = async_get_clientsession(hass)
     """Set up the sensor platform."""
     add_entities([JmaEarthquake(hass,config)],True)
 
@@ -52,7 +53,7 @@ def fetch_latest_jma_report():
     for entry in rt:
         if( entry.tag == f'{ATOM}entry' ):
             title = entry.find(f'{ATOM}title').text
-            if( title == '震源・震度に関する情報' ):
+            if( title == EARTHQUAKETITLE ):
                 link = entry.find(f'{ATOM}id').text
                 eq = requests.get(link)
                 eq.raise_for_status()
@@ -60,33 +61,37 @@ def fetch_latest_jma_report():
 
                 body = ert.find(f'{SEISMOLOGY1}Body')
                 quake = body.find(f'{SEISMOLOGY1}Earthquake')
-                time = quake.find(f'{SEISMOLOGY1}OriginTime').text
-                hypo = quake.find(f'{SEISMOLOGY1}Hypocenter')
-                area = hypo.find(f'{SEISMOLOGY1}Area')
-                area_name = area.find(f'{SEISMOLOGY1}Name').text
-                hypocenter = area.find(f'{ELEMENTBASIS1}Coordinate').text
                 magstr = quake.find(f'{ELEMENTBASIS1}Magnitude').text
+                magnitude = float(magstr)
 
-                if( float(magstr) > MAGNITUDE_THRESHOLD ):
+                if( magnitude > MAGNITUDE_THRESHOLD ):
+                    time = quake.find(f'{SEISMOLOGY1}OriginTime').text
                     dt = datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%S%z')
                     th = dt.strftime( '%H' )
                     tm = dt.strftime( '%M' )
+
+                    hypo = quake.find(f'{SEISMOLOGY1}Hypocenter')
+                    area = hypo.find(f'{SEISMOLOGY1}Area')
+                    areastr = area.find(f'{SEISMOLOGY1}Name').text
+                    hypocenter = area.find(f'{ELEMENTBASIS1}Coordinate').text
+
                     hcl = hypocenter.split( '-' )
-                    depth = int(hcl[1][:-1])/1000
+                    epicenter = hcl[0][1:].split( '+' )
+                    latitude = float( epicenter[0] )
+                    longitude = float( epicenter[1] )
+                    depth = int(int(hcl[1][:-1])/1000)
                     depthstr = str( depth )
-                    epicenter = hcl[0][1:].split( '+' ),
-                    latitude = float( epicenter[0][0] )
-                    longitude = float( epicenter[0][1] )
                     
-                    output = f'{th}時{tm}分頃、{area_name}の深さ{depthstr}キロでマグニチュード{magstr}の地震がありました。'
+                    output = f'{th}時{tm}分頃、{areastr}の深さ{depthstr}キロでマグニチュード{magstr}の地震がありました'
 
                     results = {
                         'text': output,
                         'latitude': latitude,
                         'longitude': longitude,
                         'depth': depth,
-                        'magnitude': float( magstr ),
-                        'area': area_name,
+                        'magnitude': magnitude,
+                        'magstr': magstr,
+                        'area': areastr,
                         'time': dt }
 
                     return results
@@ -94,7 +99,7 @@ def fetch_latest_jma_report():
 class JmaEarthquake(SensorEntity):
     """Representation of a Sensor."""
 
-    _attr_name = 'JMA'
+    _attr_name = 'JMA Latest Earthquake' # name of entity
     _attr_has_entity_name = True
 
     def __init__(self, hass, config):
@@ -111,6 +116,7 @@ class JmaEarthquake(SensorEntity):
             'longitude': results['longitude'],
             'depth': results['depth'],
             'maginitude': results['magnitude'],
+            'magstr': results['magstr'],
             'area': results['area'],
             'time': results['time']
         }
@@ -151,6 +157,7 @@ class JmaCoordinator(DataUpdateCoordinator):
         coordinator.async_config_entry_first_refresh.
         """
         self._device = await self.my_api.get_device()
+
 
     async def _async_update_data(self):
         """Fetch data from API endpoint.
