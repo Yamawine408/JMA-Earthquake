@@ -1,38 +1,28 @@
 from homeassistant import config_entries
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.entity_registry import async_entries_for_config_entry
+from homeassistant.core import callback
 import voluptuous as vol
 
 from .const import DOMAIN
 
-class JmaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """JMA config flow."""
+_LOGGER = logging.getLogger(__name__)
+
+SCHEMA = vol.Schema({
+    vol.Required("Magnitude Threshold", default=4): cv.positive_int,
+    vol.Required("Polling Interval (Minutes)", default=5): cv.positive_int,
+})
+
+@config_entries.HANDLERS.register(DOMAIN)
+class JmaEarthquakeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """JMA Earthquake config flow."""
 
     # The schema version of the entries that it creates
     # Home Assistant will call your migrate method if the version changes
     VERSION = 0
 
-    async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            # Validate the input using the schema
-            try:
-                # Replace with your actual schema
-                schema = vol.Schema({
-                    vol.Required("Magnitude Threshold"): vol.Coerce(int),
-                    vol.Required("Polling Interval (Minutes)"): vol.Coerce(int)
-                })
-                user_input = schema(user_input)
-
-                # If validation passes, proceed with the flow
-                # For example, create a config entry
-                return self.async_create_entry(title="JMA Earthquake", data=user_input)
-            except vol.Invalid as error:
-                # Handle validation errors
-                errors["base"] = str(error)
-
-        # If there are errors or it's the initial step, show the form
-        return self.async_show_form(
-            step_id="user",
-            data_schema=schema,
-            errors=errors,
-        )
-        
+    async def async_step_user(self, info):
+        if info is not None:
+            pass  # TODO: process info
+        schema = SCHEMA
+        return self.async_show_form(step_id='user', data_schema=schema)

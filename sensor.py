@@ -6,6 +6,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -19,6 +20,7 @@ import logging
 import requests
 import xml.etree.ElementTree as ET
 import datetime
+import re
 
 from datetime import timedelta
 
@@ -31,7 +33,7 @@ ATOM = '{http://www.w3.org/2005/Atom}'
 SEISMOLOGY1 = '{http://xml.kishou.go.jp/jmaxml1/body/seismology1/}'
 ELEMENTBASIS1 = '{http://xml.kishou.go.jp/jmaxml1/elementBasis1/}'
 EARTHQUAKETITLE = '震源・震度に関する情報'
-MAGNITUDE_THRESHOLD = 4.0
+MAGNITUDE_THRESHOLD = 3.0
 
 SCAN_INTERVAL = timedelta(seconds=300)
 
@@ -46,6 +48,15 @@ def setup_platform(
     """Set up the sensor platform."""
     add_entities([JmaEarthquake(hass,config)],True)
 
+async def setup_entry(
+    hass: core.HomeAssistant,
+    config_entry: config_entries.ConfigEntry,
+    async_add_entities,
+):
+    """Setup sensors from a config entry created in the integrations UI."""
+    config = hass.data[DOMAIN][config_entry.entry_id]
+    add_entities([JmaEarthquake(hass,config)],update_before_add=True)
+    
 def fetch_latest_jma_report():
     res = requests.get(FEED_URL)
     res.raise_for_status()
@@ -74,16 +85,17 @@ def fetch_latest_jma_report():
                     area = hypo.find(f'{SEISMOLOGY1}Area')
                     areastr = area.find(f'{SEISMOLOGY1}Name').text
                     hypocenter = area.find(f'{ELEMENTBASIS1}Coordinate').text
+                    # hypocenter is a text looking like '+29.3+129.4+0/' or '+29.3+129.4-20000/'
+                    hcl = re.findall(r'([+-]\d{2,8}.\d{1,2})', hypocenter)
+                    latitude = float(hcl[0])
+                    longitude = float(hcl[1])
+                    depthstr = hcl[2]
+                    depth = abs(int(int(depthstr)/1000)) # convgert to kilo-meter
 
-                    hcl = hypocenter.split( '-' )
-                    epicenter = hcl[0][1:].split( '+' )
-                    latitude = float( epicenter[0] )
-                    longitude = float( epicenter[1] )
-                    depth = int(int(hcl[1][:-1])/1000)
-                    depthstr = str( depth )
-                    
-                    output = f'{th}時{tm}分頃、{areastr}の深さ{depthstr}キロでマグニチュード{magstr}の地震がありました'
-
+                    if depth == 0:
+                        output = f'{th}時{tm}分頃、{areastr}のごく浅いところでマグニチュード{magstr}の地震がありました'
+                    else:
+                        output = f'{th}時{tm}分頃、{areastr}の深さ{depth}キロでマグニチュード{magstr}の地震がありました'
                     results = {
                         'text': output,
                         'latitude': latitude,
@@ -99,7 +111,7 @@ def fetch_latest_jma_report():
 class JmaEarthquake(SensorEntity):
     """Representation of a Sensor."""
 
-    _attr_name = 'JMA Latest Earthquake' # name of entity
+    _attr_name = 'Latest Earthquake' # name of entity
     _attr_has_entity_name = True
 
     def __init__(self, hass, config):
@@ -109,25 +121,16 @@ class JmaEarthquake(SensorEntity):
         
     def update(self) -> None:
         results = fetch_latest_jma_report()
-        self._attr_native_value = results['text']
+        self._attr_native_value = results.pop('text')
         self._attr_available = True
-        attributes = {
-            'latitude': results['latitude'],
-            'longitude': results['longitude'],
-            'depth': results['depth'],
-            'maginitude': results['magnitude'],
-            'magstr': results['magstr'],
-            'area': results['area'],
-            'time': results['time']
-        }
-        self._hass.custom_attributes = attributes
+        self._hass.custom_attributes = results
 
     @property
     def extra_state_attributes(self):
         return self._hass.custom_attributes
          
 class JmaCoordinator(DataUpdateCoordinator):
-    """JMA coordinator."""
+    """JMA Earthquake coordinator."""
 
     def __init__(self, hass, config_entry, my_api):
         """Initialize my coordinator."""
@@ -135,7 +138,7 @@ class JmaCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
-            name='JMA',
+            name='JMA Earthquake',
             config_entry=config_entry,
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=timedelta(seconds=300),
