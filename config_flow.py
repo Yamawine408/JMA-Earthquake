@@ -22,7 +22,5 @@ class JmaEarthquakeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 0
 
     async def async_step_user(self, info):
-        if info is not None:
-            pass  # TODO: process info
-        schema = SCHEMA
-        return self.async_show_form(step_id='user', data_schema=schema)
+        if info is None:
+            return self.async_show_form(step_id='user', data_schema=SCHEMA)

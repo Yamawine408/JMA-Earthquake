@@ -89,11 +89,16 @@ def fetch_latest_jma_report():
                     hcl = re.findall(r'([+-]\d{2,8}.\d{1,2})', hypocenter)
                     latitude = float(hcl[0])
                     longitude = float(hcl[1])
-                    depthstr = hcl[2]
-                    depth = abs(int(int(depthstr)/1000)) # convgert to kilo-meter
+                    if len(hcl) > 2:
+                        depthstr = hcl[2]
+                        depth = abs(int(int(depthstr)/1000)) # convgert to kilo-meter
+                    else:
+                        depth = None
 
                     if depth == 0:
                         output = f'{th}時{tm}分頃、{areastr}のごく浅いところでマグニチュード{magstr}の地震がありました'
+                    elif depth == None:
+                        output = f'{th}時{tm}分頃、{areastr}でマグニチュード{magstr}の地震がありました。深さは不明です'
                     else:
                         output = f'{th}時{tm}分頃、{areastr}の深さ{depth}キロでマグニチュード{magstr}の地震がありました'
                     results = {
