@@ -10,7 +10,8 @@ repositories,' and then input
 
 Next, add the following lines into the configuration.yaml file;
 
-```sensor:
+```
+sensor:
   - platform: jma_earthquake
 ```
 
@@ -24,7 +25,8 @@ longitude and depth of the earthquake), and the entity can be used
 with the lovelace map card to display the latest earthquake, shown as
 below;
 
-```type: map
+```
+type: map
 entities:
   - entity: zone.home
   - entity: sensor.latest_earthquake_2
