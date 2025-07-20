@@ -1,13 +1,13 @@
 # JMA Earthquake
 
-This Home Assistant integration is to obtain latest earthquake
+This Home Assistant integration is to obtain the latest earthquake
 information from JMA (Japan Meteorological Agency). 
 
 ## Install using HACS
 If you are using HACS (Home Assistant Community Store), go to HACS,
-click on the three dots at the upper right corner, select 'custom
-repositories,' and then input
-'https://github.com/Yamawine408/JMA-Earthquake' as an integration. 
+click on the three dots at the upper right corner, select `custom
+repositories`, and then input
+`https://github.com/Yamawine408/JMA-Earthquake` as an integration. 
 
 Next, add the following lines into the configuration.yaml file;
 
@@ -20,17 +20,17 @@ Then, restart your Home Assistant.
 
 ## Install manually
 
-1. Create a directory under the config/custom_components.
+1. Create a directory `jma_earthquake` under the `config/custom_components` directory.
 2. Go to 
-https://github.com/Yamawine408/JMA-Earthquake/tree/main/custom_components/jma_earthquake,
-and copy all files in the created directory.
+`https://github.com/Yamawine408/JMA-Earthquake/tree/main/custom_components/jma_earthquake`,
+and copy all files into the created directory.
 3. Add the sensor configuration shown above into the
-configuration.yaml file.
+`configuration.yaml` file.
 4. Restart your Home Assistant
 
 ## How to use
 
-If succeeded, you will see the 'sensor.latest_earthquake' entity with the
+If succeeded, you will see the `sensor.latest_earthquake` entity with the
 state holding the Japanese text of the latest earthquake information.
 
 The entity also holds attributes about the location of the earthquake
