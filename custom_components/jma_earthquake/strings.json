@@ -1,0 +1,15 @@
+ {
+  "title": "JMA Earthquake",
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+            "interval": "Interval"
+        },
+	"data_description": {
+            "interval": "Polling interval (minutes) for fetching data from JMA"
+        }
+      }
+    }
+  }
+}
