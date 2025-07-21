@@ -1,7 +1,7 @@
 # JMA Earthquake
 
 This Home Assistant integration is to obtain the latest earthquake
-information from JMA (Japan Meteorological Agency). 
+information from JMA (Japan Meteorological Agency, 気象庁). 
 
 ## Install using HACS
 If you are using HACS (Home Assistant Community Store), go to HACS,
