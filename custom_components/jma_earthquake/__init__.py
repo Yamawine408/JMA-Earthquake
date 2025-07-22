@@ -4,7 +4,7 @@ from homeassistant.core import HomeAssistant
 DOMAIN = "japan_meteorological_agency"
 
 async def async_setup(hass, config):
-    hass.states.async_set("jma.earthquake", None)
+    hass.states.async_set("japan_meteorological_agency.earthquake", None)
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
