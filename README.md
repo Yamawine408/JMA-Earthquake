@@ -13,7 +13,7 @@ Next, add the following lines into the configuration.yaml file;
 
 ```
 sensor:
-  - platform: jma_earthquake
+  - platform: japan_meteorological_agency
 ```
 
 Then, restart your Home Assistant.
