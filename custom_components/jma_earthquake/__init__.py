@@ -1,7 +1,7 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-DOMAIN = "jma_earthquake"
+DOMAIN = "japan_meteorological_agency"
 
 async def async_setup(hass, config):
     hass.states.async_set("jma.earthquake", None)
