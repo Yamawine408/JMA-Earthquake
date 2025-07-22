@@ -43,7 +43,7 @@ configuration of the map is shown below;
 type: map
 entities:
   - entity: zone.home
-  - entity: sensor.latest_earthquake_2
+  - entity: sensor.latest_earthquake
     label_mode: attribute
     attribute: magstr
     focus: true
