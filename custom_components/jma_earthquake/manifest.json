@@ -1,6 +1,6 @@
 {
-  "domain": "japan_meteorological_agency",
-  "name": "JMA Earthquake",
+  "domain": "jma_earthquake_2",
+  "name": "JMA Earthquake 2",
   "version": "0.1",
   "documentation": "https://github.com/Yamawine408/JMA-Integration",
   "issue_tracker": "https://github.com/Yamawine408/JMA-Integration/issues",
@@ -8,5 +8,7 @@
     "requirements": ["datetime"],
   "dependencies": [],
   "codeowners": ["@Yamawine408"],
-  "config_flow": false,
-  "single_config_entry": true}
+  "config_flow": true,
+  "single_config_entry": true,
+  "integration_type": "sensor"
+}

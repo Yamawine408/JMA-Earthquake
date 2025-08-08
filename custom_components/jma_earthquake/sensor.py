@@ -35,29 +35,15 @@ ELEMENTBASIS1 = '{http://xml.kishou.go.jp/jmaxml1/elementBasis1/}'
 EARTHQUAKETITLE = '震源・震度に関する情報'
 MAGNITUDE_THRESHOLD = 3.0
 
-SCAN_INTERVAL = timedelta(seconds=300)
+SCAN_INTERVAL = timedelta(seconds=300) # 5 minutes
 
-def setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None
-) -> None:
-#    config = hass.data[DOMAIN][config_entry.entry_id]
-#    session = async_get_clientsession(hass)
-    """Set up the sensor platform."""
-    add_entities([JmaEarthquake(hass,config)],True)
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
+    coordinator = JmaCoordinator(hass, entry)
+    await coordinator.async_config_entry_first_refresh()
 
-async def setup_entry(
-    hass: core.HomeAssistant,
-    config_entry: config_entries.ConfigEntry,
-    async_add_entities,
-):
-    """Setup sensors from a config entry created in the integrations UI."""
-    config = hass.data[DOMAIN][config_entry.entry_id]
-    add_entities([JmaEarthquake(hass,config)],update_before_add=True)
+    async_add_entities([JmaEntity(coordinator)])
     
-def fetch_latest_jma_report():
+def fetch_latest_jma_report(threshold float=3.0):
     res = requests.get(FEED_URL)
     res.raise_for_status()
     rt = ET.fromstring(res.content)
@@ -75,7 +61,7 @@ def fetch_latest_jma_report():
                 magstr = quake.find(f'{ELEMENTBASIS1}Magnitude').text
                 magnitude = float(magstr)
 
-                if( magnitude > MAGNITUDE_THRESHOLD ):
+                if( magnitude >= MAGNITUDE_THRESHOLD ):
                     time = quake.find(f'{SEISMOLOGY1}OriginTime').text
                     dt = datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%S%z')
                     th = dt.strftime( '%H' )
@@ -112,27 +98,28 @@ def fetch_latest_jma_report():
                         'time': dt }
 
                     return results
+    return None
 
 class JmaEarthquake(SensorEntity):
-    """Representation of a Sensor."""
+    """Representation of a JMA Earthquake Sensor."""
 
-    _attr_name = 'Latest Earthquake' # name of entity
-    _attr_has_entity_name = True
-
-    def __init__(self, hass, config):
-        """Initialize the sensor."""
-        self._hass = hass
-        self._hass.custom_attributes = {}
+    def __init__(self, config):
+        self._attr_name = "Latest Earthquake"
+        self._attr_has_entity_name = True
+        self._attr_native_value = None
+        self._attr_extra_state_attributes = {}
+        self._config = config
+        self._threshold = config.get("magnitude_threshold", 4)
         
-    def update(self) -> None:
-        results = fetch_latest_jma_report()
-        self._attr_native_value = results.pop('text')
-        self._attr_available = True
-        self._hass.custom_attributes = results
-
-    @property
-    def extra_state_attributes(self):
-        return self._hass.custom_attributes
+    async def async_update(self):
+        """Fetch new state data for the sensor."""
+        results = fetch_latest_jma_report(self._threshold)
+        if results:
+            self._attr_native_value = results.pop('text')
+            self._attr_extra_state_attributes = results
+        else:
+            self._attr_native_value = "No significant earthquake"
+            self._attr_extra_state_attributes = {}
          
 class JmaCoordinator(DataUpdateCoordinator):
     """JMA Earthquake coordinator."""
@@ -179,18 +166,15 @@ class JmaCoordinator(DataUpdateCoordinator):
         listening_idx = set(self.async_contexts())
         return await self.my_api.fetch_data(listening_idx)
 
+class JmaEntity(CoordinatorEntity, SensorEntity):
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_name = "Latest Earthquake"
 
-class JmaEntity(CoordinatorEntity):
-    """An entity using CoordinatorEntity.
+    @property
+    def native_value(self):
+        return self.coordinator.data.get("text")
 
-    The CoordinatorEntity class provides:
-      should_poll
-      async_update
-      async_added_to_hass
-      available
-    """
-
-    def __init__(self, coordinator, idx):
-        """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator, context=idx)
-        self.idx = idx
+    @property
+    def extra_state_attributes(self):
+        return self.coordinator.data
