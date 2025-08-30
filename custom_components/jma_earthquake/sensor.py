@@ -75,7 +75,7 @@ def fetch_latest_jma_report():
                 magstr = quake.find(f'{ELEMENTBASIS1}Magnitude').text
                 magnitude = float(magstr)
 
-                if( magnitude > MAGNITUDE_THRESHOLD ):
+                if( magnitude >= MAGNITUDE_THRESHOLD ):
                     time = quake.find(f'{SEISMOLOGY1}OriginTime').text
                     dt = datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%S%z')
                     th = dt.strftime( '%H' )
@@ -112,6 +112,7 @@ def fetch_latest_jma_report():
                         'time': dt }
 
                     return results
+    return None
 
 class JmaEarthquake(SensorEntity):
     """Representation of a Sensor."""
@@ -126,9 +127,10 @@ class JmaEarthquake(SensorEntity):
         
     def update(self) -> None:
         results = fetch_latest_jma_report()
-        self._attr_native_value = results.pop('text')
-        self._attr_available = True
-        self._hass.custom_attributes = results
+        if results != None:
+            self._attr_native_value = results.pop('text')
+            self._attr_available = True
+            self._hass.custom_attributes = results
 
     @property
     def extra_state_attributes(self):
